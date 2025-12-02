@@ -3,7 +3,7 @@ let currentCurrency = 'IDR';
 
 async function loadProdukList() {
   try {
-    const produk = await fetchAPI(API.PRODUK);
+    const produk = await fetchAPI('/api/produk');
     const select = document.getElementById('produkSelect');
     select.innerHTML = '<option value="">Pilih Produk...</option>' +
       produk.map(p => `<option value="${p._id}">${p.namaProduk}</option>`).join('');
@@ -25,7 +25,7 @@ async function calculateHPE() {
   document.getElementById('loadingHPE').style.display = 'block';
   
   try {
-    const data = await fetchAPI(`${API.HPE}/${produkId}?currency=${currentCurrency}`);
+    const data = await fetchAPI(`${'/api/hpe'}/${produkId}?currency=${currentCurrency}`);
     currentHPEData = data;
     displayHPEResult(data);
   } catch (error) {

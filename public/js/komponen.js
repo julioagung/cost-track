@@ -6,7 +6,7 @@ async function loadKomponen() {
   
   try {
     tableContainer.classList.add('table-loading');
-    const data = await fetchAPI(API.KOMPONEN);
+    const data = await fetchAPI('/api/komponen');
     tableContainer.classList.remove('table-loading');
     
     if (data.length === 0) {
@@ -56,7 +56,7 @@ function showAddModal() {
 
 async function editKomponen(id) {
   try {
-    const data = await fetchAPI(`${API.KOMPONEN}/${id}`);
+    const data = await fetchAPI(`${'/api/komponen'}/${id}`);
     document.getElementById('modalTitle').textContent = 'Edit Komponen';
     document.getElementById('komponenId').value = data._id;
     document.getElementById('namaKomponen').value = data.namaKomponen;
@@ -78,13 +78,13 @@ async function saveKomponen() {
   
   try {
     if (id) {
-      await fetchAPI(`${API.KOMPONEN}/${id}`, {
+      await fetchAPI(`${'/api/komponen'}/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data)
       });
       showAlert('Komponen berhasil diupdate', 'success');
     } else {
-      await fetchAPI(API.KOMPONEN, {
+      await fetchAPI('/api/komponen', {
         method: 'POST',
         body: JSON.stringify(data)
       });
@@ -102,7 +102,7 @@ async function deleteKomponen(id, nama) {
   if (!confirm(`Yakin ingin menghapus komponen "${nama}"?`)) return;
   
   try {
-    await fetchAPI(`${API.KOMPONEN}/${id}`, { method: 'DELETE' });
+    await fetchAPI(`${'/api/komponen'}/${id}`, { method: 'DELETE' });
     showAlert('Komponen berhasil dihapus', 'success');
     loadKomponen();
   } catch (error) {

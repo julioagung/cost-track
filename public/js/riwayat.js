@@ -3,7 +3,7 @@ let komponenList = [];
 
 async function loadRiwayat() {
   try {
-    const data = await fetchAPI(API.RIWAYAT);
+    const data = await fetchAPI('/api/riwayat');
     const tbody = document.getElementById('riwayatTableBody');
     
     if (data.length === 0) {
@@ -58,7 +58,7 @@ async function loadRiwayat() {
 
 async function loadKomponenList() {
   try {
-    komponenList = await fetchAPI(API.KOMPONEN);
+    komponenList = await fetchAPI('/api/komponen');
     const select = document.getElementById('komponenId');
     select.innerHTML = '<option value="">Pilih Komponen</option>' +
       komponenList.map(k => `<option value="${k._id}" data-nama="${k.namaKomponen}">${k.namaKomponen}</option>`).join('');
@@ -105,7 +105,7 @@ async function fetchKursToday() {
     }
     
     const dateToFetch = document.getElementById('tanggalPengadaan').value;
-    const kurs = await fetchAPI(`${API.KURS}/${dateToFetch}`);
+    const kurs = await fetchAPI(`${'/api/kurs'}/${dateToFetch}`);
     document.getElementById('kursJisdor').value = kurs.usdToIdr;
     showAlert(`Kurs ${formatDate(kurs.tanggal)}: ${formatCurrency(kurs.usdToIdr)} (${kurs.sumber})`, 'success');
   } catch (error) {
@@ -117,7 +117,7 @@ async function fetchKursToday() {
 
 async function editRiwayat(id) {
   try {
-    const data = await fetchAPI(`${API.RIWAYAT}/${id}`);
+    const data = await fetchAPI(`${'/api/riwayat'}/${id}`);
     document.getElementById('modalTitle').textContent = 'Edit Riwayat Pengadaan';
     document.getElementById('riwayatId').value = data._id;
     document.getElementById('komponenId').value = data.komponenId;
@@ -179,13 +179,13 @@ async function saveRiwayat() {
   
   try {
     if (id) {
-      await fetchAPI(`${API.RIWAYAT}/${id}`, {
+      await fetchAPI(`${'/api/riwayat'}/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data)
       });
       showAlert('Riwayat berhasil diupdate', 'success');
     } else {
-      await fetchAPI(API.RIWAYAT, {
+      await fetchAPI('/api/riwayat', {
         method: 'POST',
         body: JSON.stringify(data)
       });
@@ -203,7 +203,7 @@ async function deleteRiwayat(id) {
   if (!confirm('Yakin ingin menghapus riwayat ini?')) return;
   
   try {
-    await fetchAPI(`${API.RIWAYAT}/${id}`, { method: 'DELETE' });
+    await fetchAPI(`${'/api/riwayat'}/${id}`, { method: 'DELETE' });
     showAlert('Riwayat berhasil dihapus', 'success');
     loadRiwayat();
   } catch (error) {

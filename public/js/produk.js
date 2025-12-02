@@ -8,7 +8,7 @@ async function loadProduk() {
   
   try {
     tableContainer.classList.add('table-loading');
-    const data = await fetchAPI(API.PRODUK);
+    const data = await fetchAPI('/api/produk');
     tableContainer.classList.remove('table-loading');
     
     if (data.length === 0) {
@@ -52,7 +52,7 @@ async function loadProduk() {
 
 async function loadKomponenList() {
   try {
-    komponenList = await fetchAPI(API.KOMPONEN);
+    komponenList = await fetchAPI('/api/komponen');
   } catch (error) {
     console.error('Error loading komponen:', error);
   }
@@ -123,7 +123,7 @@ function removeBOMItem(id) {
 
 async function editProduk(id) {
   try {
-    const data = await fetchAPI(`${API.PRODUK}/${id}`);
+    const data = await fetchAPI(`/api/produk/${id}`);
     document.getElementById('modalTitle').textContent = 'Edit Produk';
     document.getElementById('produkId').value = data._id;
     document.getElementById('namaProduk').value = data.namaProduk;
@@ -169,13 +169,13 @@ async function saveProduk() {
   
   try {
     if (id) {
-      await fetchAPI(`${API.PRODUK}/${id}`, {
+      await fetchAPI(`/api/produk/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data)
       });
       showAlert('Produk berhasil diupdate', 'success');
     } else {
-      await fetchAPI(API.PRODUK, {
+      await fetchAPI('/api/produk', {
         method: 'POST',
         body: JSON.stringify(data)
       });
@@ -193,7 +193,7 @@ async function deleteProduk(id, nama) {
   if (!confirm(`Yakin ingin menghapus produk "${nama}"?`)) return;
   
   try {
-    await fetchAPI(`${API.PRODUK}/${id}`, { method: 'DELETE' });
+    await fetchAPI(`${'/api/produk'}/${id}`, { method: 'DELETE' });
     showAlert('Produk berhasil dihapus', 'success');
     loadProduk();
   } catch (error) {
@@ -203,7 +203,7 @@ async function deleteProduk(id, nama) {
 
 async function viewBOM(id) {
   try {
-    const data = await fetchAPI(`${API.PRODUK}/${id}`);
+    const data = await fetchAPI(`${'/api/produk'}/${id}`);
     let bomHTML = `<h5>${data.namaProduk}</h5><ul>`;
     data.bom.forEach(item => {
       bomHTML += `<li>${item.namaKomponen}: ${item.quantity} ${item.satuan}</li>`;

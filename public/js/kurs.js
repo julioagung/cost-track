@@ -1,6 +1,6 @@
 async function loadKursToday() {
   try {
-    const kurs = await fetchAPI(`${API.KURS}/today`);
+    const kurs = await fetchAPI(`${'/api/kurs'}/today`);
     document.getElementById('kursToday').innerHTML = `
       <h2 class="display-4">${formatCurrency(kurs.usdToIdr)}</h2>
       <p class="text-muted">${formatDate(kurs.tanggal)}</p>
@@ -23,7 +23,7 @@ async function searchKurs() {
   }
   
   try {
-    const kurs = await fetchAPI(`${API.KURS}/${date}`);
+    const kurs = await fetchAPI(`${'/api/kurs'}/${date}`);
     document.getElementById('searchResult').innerHTML = `
       <div class="alert alert-info">
         <h5>${formatCurrency(kurs.usdToIdr)}</h5>
@@ -63,7 +63,7 @@ async function uploadCSV() {
       return;
     }
     
-    const result = await fetchAPI(`${API.KURS}/upload-csv`, {
+    const result = await fetchAPI(`${'/api/kurs'}/upload-csv`, {
       method: 'POST',
       body: JSON.stringify({ data })
     });
