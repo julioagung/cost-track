@@ -1,0 +1,23 @@
+{
+  "name": "costtrack",
+  "version": "1.0.0",
+  "description": "CostTrack - Sistem Perhitungan HPE dengan Integrasi JISDOR",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "start:old": "node server.js"
+  },
+  "keywords": ["hpe", "cost-estimation", "jisdor"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^8.0.0",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2",
+    "axios": "^1.6.0",
+    "xml2js": "^0.6.2",
+    "dotenv": "^16.3.1"
+  }
+}
