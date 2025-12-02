@@ -1,6 +1,8 @@
 async function loadDashboardData() {
   try {
+    console.log('Loading dashboard data...');
     const stats = await fetchAPI('/api/stats/dashboard');
+    console.log('Dashboard stats:', stats);
     
     document.getElementById('totalProduk').textContent = stats.counts.produk;
     document.getElementById('totalKomponen').textContent = stats.counts.komponen;

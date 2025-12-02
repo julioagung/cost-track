@@ -53,13 +53,23 @@ async function fetchAPI(url, options = {}) {
       try {
         const method = options.method || 'GET';
         const urlParts = url.split('/');
-        const resource = urlParts[urlParts.indexOf('api') + 1];
+        const apiIndex = urlParts.indexOf('api');
+        const resource = apiIndex >= 0 ? urlParts[apiIndex + 1] : '';
         const id = urlParts[urlParts.length - 1];
         
-        let data = JSON.parse(localStorage.getItem(resource) || '[]');
-        
         if (method === 'GET') {
-          if (url.includes('/hpe/')) {
+          if (url.includes('/stats/dashboard')) {
+            // Dashboard Stats
+            resolve({
+              counts: {
+                produk: JSON.parse(localStorage.getItem('produk') || '[]').length,
+                komponen: JSON.parse(localStorage.getItem('komponen') || '[]').length,
+                riwayat: JSON.parse(localStorage.getItem('riwayat') || '[]').length
+              },
+              kursToday: JSON.parse(localStorage.getItem('kurs') || '[{"usdToIdr":15500,"sumber":"JISDOR"}]')[0]
+            });
+            return;
+          } else if (url.includes('/hpe/')) {
             // HPE Calculation
             const produkId = url.split('/hpe/')[1].split('?')[0];
             const currency = url.includes('currency=USD') ? 'USD' : 'IDR';
@@ -108,32 +118,30 @@ async function fetchAPI(url, options = {}) {
               komponenHPE,
               totalHPE
             });
-          } else if (id && id !== resource) {
-            const item = data.find(d => d._id === id);
-            resolve(item || {});
           } else if (url.includes('/today')) {
             const today = new Date().toISOString().split('T')[0];
-            const kurs = data.find(k => k.tanggal === today) || data[0];
+            const kursData = JSON.parse(localStorage.getItem('kurs') || '[]');
+            const kurs = kursData.find(k => k.tanggal === today) || kursData[0];
             resolve(kurs);
-          } else if (url.includes('/stats/dashboard')) {
-            resolve({
-              counts: {
-                produk: JSON.parse(localStorage.getItem('produk') || '[]').length,
-                komponen: JSON.parse(localStorage.getItem('komponen') || '[]').length,
-                riwayat: JSON.parse(localStorage.getItem('riwayat') || '[]').length
-              },
-              kursToday: JSON.parse(localStorage.getItem('kurs') || '[{"usdToIdr":15500}]')[0]
-            });
           } else {
-            resolve(data);
+            // Regular GET
+            let data = JSON.parse(localStorage.getItem(resource) || '[]');
+            if (id && id !== resource && id !== 'dashboard') {
+              const item = data.find(d => d._id === id);
+              resolve(item || {});
+            } else {
+              resolve(data);
+            }
           }
         } else if (method === 'POST') {
+          let data = JSON.parse(localStorage.getItem(resource) || '[]');
           const newData = JSON.parse(options.body);
           newData._id = Date.now().toString();
           data.push(newData);
           localStorage.setItem(resource, JSON.stringify(data));
           resolve(newData);
         } else if (method === 'PUT') {
+          let data = JSON.parse(localStorage.getItem(resource) || '[]');
           const updateData = JSON.parse(options.body);
           const index = data.findIndex(d => d._id === id);
           if (index !== -1) {
@@ -144,6 +152,7 @@ async function fetchAPI(url, options = {}) {
             reject(new Error('Not found'));
           }
         } else if (method === 'DELETE') {
+          let data = JSON.parse(localStorage.getItem(resource) || '[]');
           data = data.filter(d => d._id !== id);
           localStorage.setItem(resource, JSON.stringify(data));
           resolve({ message: 'Deleted' });
