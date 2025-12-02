@@ -2,20 +2,22 @@ let riwayatModal;
 let komponenList = [];
 
 async function loadRiwayat() {
+  const tbody = document.getElementById('riwayatTableBody');
   try {
+    console.log('Loading riwayat...');
     const data = await fetchAPI('/api/riwayat');
-    const tbody = document.getElementById('riwayatTableBody');
+    console.log('Riwayat data:', data);
     
-    if (data.length === 0) {
+    if (!data || data.length === 0) {
       tbody.innerHTML = '<tr><td colspan="10" class="text-center">Belum ada data riwayat pengadaan</td></tr>';
       return;
     }
     
     tbody.innerHTML = data.map((item, index) => {
       // Format harga satuan dengan simbol mata uang
-      const displayPrice = item.matauang === 'USD' 
-        ? `$${item.hargaSatuan.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
-        : formatCurrency(item.hargaSatuan);
+      const hargaSatuan = item.hargaSatuan || item.harga || 0; const displayPrice = item.matauang === 'USD' 
+        ? `$${hargaSatuan.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
+        : formatCurrency(hargaSatuan);
       
       // Format tanggal yang lebih ringkas
       const tanggal = new Date(item.tanggalPengadaan);
@@ -38,7 +40,7 @@ async function loadRiwayat() {
           <td class="text-center">${index + 1}</td>
           <td>${tanggalStr}</td>
           <td><span class="fw-bold">${item.namaKomponen}</span></td>
-          <td>${item.supplier}</td>
+          <td>${item.supplier || "-"}</td>
           <td class="text-end">${item.quantity.toLocaleString('id-ID')}</td>
           <td class="text-end">${displayPrice} <span class="badge badge-${item.matauang === 'USD' ? 'success' : 'primary'}">${item.matauang}</span></td>
           <td class="text-end"><span class="fw-bold">${formatCurrency(item.hargaIDR)}</span></td>
@@ -52,7 +54,9 @@ async function loadRiwayat() {
       `;
     }).join('');
   } catch (error) {
-    showAlert('Gagal memuat data riwayat', 'danger');
+    console.error('Error loading riwayat:', error);
+    tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger">Gagal memuat data riwayat</td></tr>';
+    showAlert('Gagal memuat data riwayat: ' + error.message, 'danger');
   }
 }
 
@@ -216,3 +220,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadKomponenList();
   loadRiwayat();
 });
+
+
+

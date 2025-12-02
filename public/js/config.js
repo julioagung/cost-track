@@ -28,9 +28,51 @@ function initDummyData() {
   
   if (!localStorage.getItem('riwayat')) {
     localStorage.setItem('riwayat', JSON.stringify([
-      { _id: '1', komponenId: '1', namaKomponen: 'Processor Intel i7', tanggalPengadaan: '2024-12-01', quantity: 10, matauang: 'USD', harga: 300, kursJisdor: 15500, hargaIDR: 4650000, hargaUSD: 300 },
-      { _id: '2', komponenId: '2', namaKomponen: 'RAM 16GB', tanggalPengadaan: '2024-12-01', quantity: 20, matauang: 'IDR', harga: 1200000, kursJisdor: 1, hargaIDR: 1200000, hargaUSD: 1200000 },
-      { _id: '3', komponenId: '1', namaKomponen: 'Processor Intel i7', tanggalPengadaan: '2024-11-25', quantity: 5, matauang: 'USD', harga: 310, kursJisdor: 15600, hargaIDR: 4836000, hargaUSD: 310 }
+      { 
+        _id: '1', 
+        komponenId: '1', 
+        namaKomponen: 'Processor Intel i7', 
+        tanggalPengadaan: '2024-12-01', 
+        quantity: 10, 
+        matauang: 'USD', 
+        harga: 300,
+        hargaSatuan: 300,
+        kursJisdor: 15500, 
+        hargaIDR: 4650000, 
+        hargaUSD: 300,
+        supplier: 'PT Tech Indonesia',
+        noPO: 'PO-2024-001'
+      },
+      { 
+        _id: '2', 
+        komponenId: '2', 
+        namaKomponen: 'RAM 16GB', 
+        tanggalPengadaan: '2024-12-01', 
+        quantity: 20, 
+        matauang: 'IDR', 
+        harga: 1200000,
+        hargaSatuan: 1200000,
+        kursJisdor: 1, 
+        hargaIDR: 1200000, 
+        hargaUSD: 1200000,
+        supplier: 'CV Komputer Jaya',
+        noPO: 'PO-2024-002'
+      },
+      { 
+        _id: '3', 
+        komponenId: '1', 
+        namaKomponen: 'Processor Intel i7', 
+        tanggalPengadaan: '2024-11-25', 
+        quantity: 5, 
+        matauang: 'USD', 
+        harga: 310,
+        hargaSatuan: 310,
+        kursJisdor: 15600, 
+        hargaIDR: 4836000, 
+        hargaUSD: 310,
+        supplier: 'PT Tech Indonesia',
+        noPO: 'PO-2024-003'
+      }
     ]));
   }
   
