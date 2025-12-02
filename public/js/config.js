@@ -123,41 +123,72 @@ async function fetchAPI(url, options = {}) {
               return;
             }
             
+            const kursData = JSON.parse(localStorage.getItem('kurs') || '[]');
+            const kursReference = kursData[0]?.usdToIdr || 15500;
+            
             const komponenHPE = produk.bom.map(bom => {
               const komponenRiwayat = riwayat.filter(r => r.komponenId === bom.komponenId);
-              const hargaField = currency === 'USD' ? 'hargaUSD' : 'hargaIDR';
-              const hargaList = komponenRiwayat.map(r => r[hargaField]);
               
-              const min = hargaList.length ? Math.min(...hargaList) : 0;
-              const max = hargaList.length ? Math.max(...hargaList) : 0;
-              const avg = hargaList.length ? hargaList.reduce((a,b) => a+b, 0) / hargaList.length : 0;
-              const median = hargaList.length ? hargaList.sort((a,b) => a-b)[Math.floor(hargaList.length/2)] : 0;
+              if (komponenRiwayat.length === 0) {
+                return {
+                  namaKomponen: bom.namaKomponen,
+                  quantity: bom.quantity,
+                  satuan: bom.satuan,
+                  jumlahData: 0,
+                  message: 'Tidak ada data riwayat pengadaan'
+                };
+              }
+              
+              const hargaField = currency === 'USD' ? 'hargaUSD' : 'hargaIDR';
+              const hargaList = komponenRiwayat.map(r => r[hargaField] || r.harga || 0);
+              
+              const sorted = [...hargaList].sort((a,b) => a-b);
+              const min = Math.min(...hargaList);
+              const max = Math.max(...hargaList);
+              const avg = hargaList.reduce((a,b) => a+b, 0) / hargaList.length;
+              const median = sorted[Math.floor(sorted.length/2)];
+              
+              const dataBreakdown = {
+                idr: komponenRiwayat.filter(r => r.matauang === 'IDR').length,
+                usd: komponenRiwayat.filter(r => r.matauang === 'USD').length
+              };
               
               return {
                 namaKomponen: bom.namaKomponen,
                 quantity: bom.quantity,
                 satuan: bom.satuan,
-                hpe: { min, max, avg, median },
-                totalHPE: {
-                  min: min * bom.quantity,
-                  max: max * bom.quantity,
-                  avg: avg * bom.quantity,
-                  median: median * bom.quantity
+                jumlahData: komponenRiwayat.length,
+                dataBreakdown,
+                hpePerSatuan: {
+                  minimum: min,
+                  maksimum: max,
+                  median: median,
+                  rataRata: avg
+                },
+                hpeTotal: {
+                  minimum: min * bom.quantity,
+                  maksimum: max * bom.quantity,
+                  median: median * bom.quantity,
+                  rataRata: avg * bom.quantity
                 }
               };
             });
             
             const totalHPE = {
-              min: komponenHPE.reduce((sum, k) => sum + k.totalHPE.min, 0),
-              max: komponenHPE.reduce((sum, k) => sum + k.totalHPE.max, 0),
-              avg: komponenHPE.reduce((sum, k) => sum + k.totalHPE.avg, 0),
-              median: komponenHPE.reduce((sum, k) => sum + k.totalHPE.median, 0)
+              minimum: komponenHPE.reduce((sum, k) => sum + (k.hpeTotal?.minimum || 0), 0),
+              maksimum: komponenHPE.reduce((sum, k) => sum + (k.hpeTotal?.maksimum || 0), 0),
+              median: komponenHPE.reduce((sum, k) => sum + (k.hpeTotal?.median || 0), 0),
+              rataRata: komponenHPE.reduce((sum, k) => sum + (k.hpeTotal?.rataRata || 0), 0)
             };
             
             resolve({
-              produk: produk.namaProduk,
+              produk: {
+                nama: produk.namaProduk,
+                deskripsi: produk.deskripsi || ''
+              },
               currency,
-              komponenHPE,
+              kursReference: currency === 'USD' ? kursReference : null,
+              komponen: komponenHPE,
               totalHPE
             });
           } else if (url.includes('/today')) {
