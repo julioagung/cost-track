@@ -111,6 +111,23 @@ async function fetchAPI(url, options = {}) {
               kursToday: JSON.parse(localStorage.getItem('kurs') || '[{"usdToIdr":15500,"sumber":"JISDOR"}]')[0]
             });
             return;
+          } else if (url.includes('/kurs/today')) {
+            // Get today's kurs
+            const today = new Date().toISOString().split('T')[0];
+            const kursData = JSON.parse(localStorage.getItem('kurs') || '[]');
+            const kurs = kursData.find(k => k.tanggal === today) || kursData[0] || { tanggal: today, usdToIdr: 15500, sumber: 'JISDOR' };
+            resolve(kurs);
+            return;
+          } else if (url.includes('/kurs/') && !url.includes('/upload-csv')) {
+            // Get kurs by date
+            const dateMatch = url.match(/\/kurs\/(.+)$/);
+            if (dateMatch) {
+              const searchDate = dateMatch[1];
+              const kursData = JSON.parse(localStorage.getItem('kurs') || '[]');
+              const kurs = kursData.find(k => k.tanggal === searchDate) || { tanggal: searchDate, usdToIdr: 15500, sumber: 'JISDOR' };
+              resolve(kurs);
+              return;
+            }
           } else if (url.includes('/hpe/')) {
             // HPE Calculation
             const produkId = url.split('/hpe/')[1].split('?')[0];
@@ -191,11 +208,6 @@ async function fetchAPI(url, options = {}) {
               komponen: komponenHPE,
               totalHPE
             });
-          } else if (url.includes('/today')) {
-            const today = new Date().toISOString().split('T')[0];
-            const kursData = JSON.parse(localStorage.getItem('kurs') || '[]');
-            const kurs = kursData.find(k => k.tanggal === today) || kursData[0];
-            resolve(kurs);
           } else {
             // Regular GET
             let data = JSON.parse(localStorage.getItem(resource) || '[]');
@@ -207,6 +219,37 @@ async function fetchAPI(url, options = {}) {
             }
           }
         } else if (method === 'POST') {
+          // Handle CSV upload for kurs
+          if (url.includes('/kurs/upload-csv')) {
+            const { data: csvData } = JSON.parse(options.body);
+            let kursData = JSON.parse(localStorage.getItem('kurs') || '[]');
+            
+            let uploadedCount = 0;
+            csvData.forEach(row => {
+              const existingIndex = kursData.findIndex(k => k.tanggal === row.tanggal);
+              const newKurs = {
+                tanggal: row.tanggal,
+                usdToIdr: parseFloat(row.usdToIdr),
+                sumber: 'MANUAL'
+              };
+              
+              if (existingIndex >= 0) {
+                kursData[existingIndex] = newKurs;
+              } else {
+                kursData.push(newKurs);
+              }
+              uploadedCount++;
+            });
+            
+            localStorage.setItem('kurs', JSON.stringify(kursData));
+            resolve({ 
+              message: `${uploadedCount} data kurs berhasil diupload`, 
+              data: csvData 
+            });
+            return;
+          }
+          
+          // Regular POST
           let data = JSON.parse(localStorage.getItem(resource) || '[]');
           const newData = JSON.parse(options.body);
           newData._id = Date.now().toString();
@@ -239,16 +282,39 @@ async function fetchAPI(url, options = {}) {
 
 // Alert Helper
 function showAlert(message, type = 'info') {
+  // Icon mapping
+  const icons = {
+    success: '✓',
+    danger: '✕',
+    warning: '⚠',
+    info: 'ℹ'
+  };
+  
   const alertDiv = document.createElement('div');
-  alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
-  alertDiv.style.zIndex = '9999';
+  alertDiv.className = `alert alert-${type}`;
   alertDiv.innerHTML = `
-    ${message}
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div class="alert-content">
+      <span class="alert-icon">${icons[type] || 'ℹ'}</span>
+      <span class="alert-message">${message}</span>
+    </div>
+    <button class="alert-ok-btn">OK</button>
   `;
+  
   document.body.appendChild(alertDiv);
   
-  setTimeout(() => alertDiv.remove(), 3000);
+  // Function to close alert
+  const closeAlert = () => {
+    if (alertDiv.parentElement) {
+      alertDiv.style.animation = 'alertSlideUp 0.3s ease-out';
+      setTimeout(() => alertDiv.remove(), 300);
+    }
+  };
+  
+  // Click anywhere on alert to close
+  alertDiv.addEventListener('click', closeAlert);
+  
+  // Auto remove after 2 seconds
+  setTimeout(closeAlert, 2000);
 }
 
 // Format Currency

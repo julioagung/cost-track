@@ -1,16 +1,20 @@
 async function loadKursToday() {
   try {
-    const kurs = await fetchAPI(`${'/api/kurs'}/today`);
-    document.getElementById('kursToday').innerHTML = `
-      <h2 class="display-4">${formatCurrency(kurs.usdToIdr)}</h2>
-      <p class="text-muted">${formatDate(kurs.tanggal)}</p>
-      <span class="badge bg-${kurs.sumber === 'JISDOR' ? 'success' : 'warning'}">
-        ${kurs.sumber}
-      </span>
-    `;
+    const kurs = await fetchAPI('/api/kurs/today');
+    if (kurs && kurs.usdToIdr) {
+      document.getElementById('kursToday').innerHTML = `
+        <h2 class="display-4">${formatCurrency(kurs.usdToIdr)}</h2>
+        <p class="text-muted">${formatDate(kurs.tanggal)}</p>
+        <span class="badge bg-${kurs.sumber === 'JISDOR' ? 'success' : 'warning'}">
+          ${kurs.sumber}
+        </span>
+      `;
+    } else {
+      throw new Error('Data kurs tidak valid');
+    }
   } catch (error) {
     document.getElementById('kursToday').innerHTML = `
-      <div class="alert alert-danger">Gagal memuat kurs hari ini</div>
+      <div class="text-danger">Gagal memuat kurs hari ini</div>
     `;
   }
 }
@@ -23,19 +27,25 @@ async function searchKurs() {
   }
   
   try {
-    const kurs = await fetchAPI(`${'/api/kurs'}/${date}`);
-    document.getElementById('searchResult').innerHTML = `
-      <div class="alert alert-info">
-        <h5>${formatCurrency(kurs.usdToIdr)}</h5>
-        <p class="mb-0">${formatDate(kurs.tanggal)}</p>
-        <span class="badge bg-${kurs.sumber === 'JISDOR' ? 'success' : 'warning'}">
-          ${kurs.sumber}
-        </span>
-      </div>
-    `;
+    const kurs = await fetchAPI(`/api/kurs/${date}`);
+    if (kurs && kurs.usdToIdr) {
+      document.getElementById('searchResult').innerHTML = `
+        <div class="card bg-light">
+          <div class="card-body">
+            <h5 class="mb-2">${formatCurrency(kurs.usdToIdr)}</h5>
+            <p class="text-muted mb-2">${formatDate(kurs.tanggal)}</p>
+            <span class="badge bg-${kurs.sumber === 'JISDOR' ? 'success' : 'warning'}">
+              ${kurs.sumber}
+            </span>
+          </div>
+        </div>
+      `;
+    } else {
+      throw new Error('Data kurs tidak ditemukan');
+    }
   } catch (error) {
     document.getElementById('searchResult').innerHTML = `
-      <div class="alert alert-danger">Gagal memuat kurs untuk tanggal tersebut</div>
+      <div class="text-danger">Gagal memuat kurs untuk tanggal tersebut</div>
     `;
   }
 }
@@ -48,32 +58,75 @@ async function uploadCSV() {
   }
   
   try {
-    const lines = csvText.split('\n');
+    const lines = csvText.split('\n').filter(line => line.trim());
     const data = [];
     
-    for (const line of lines) {
-      const [tanggal, usdToIdr] = line.split(',').map(s => s.trim());
-      if (tanggal && usdToIdr) {
-        data.push({ tanggal, usdToIdr });
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Skip header if exists
+      if (i === 0 && (line.toLowerCase().includes('tanggal') || line.toLowerCase().includes('date'))) {
+        continue;
+      }
+      
+      const parts = line.split(',').map(s => s.trim());
+      if (parts.length >= 2) {
+        const tanggal = parts[0];
+        const usdToIdr = parts[1];
+        
+        // Validate date format (YYYY-MM-DD)
+        if (tanggal && usdToIdr && /^\d{4}-\d{2}-\d{2}$/.test(tanggal)) {
+          const rate = parseFloat(usdToIdr);
+          if (!isNaN(rate) && rate > 0) {
+            data.push({ tanggal, usdToIdr: rate });
+          }
+        }
       }
     }
     
     if (data.length === 0) {
-      showAlert('Format CSV tidak valid', 'danger');
+      showAlert('Format CSV tidak valid. Gunakan format: tanggal,usdToIdr (contoh: 2024-01-15,15500)', 'danger');
       return;
     }
     
-    const result = await fetchAPI(`${'/api/kurs'}/upload-csv`, {
+    const result = await fetchAPI('/api/kurs/upload-csv', {
       method: 'POST',
       body: JSON.stringify({ data })
     });
     
-    showAlert(result.message, 'success');
+    showAlert(result.message || 'Data berhasil diupload', 'success');
     document.getElementById('csvData').value = '';
     loadKursToday();
   } catch (error) {
-    showAlert(error.message, 'danger');
+    showAlert(error.message || 'Gagal mengupload data', 'danger');
   }
+}
+
+function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  // Validate file type
+  if (!file.name.endsWith('.csv')) {
+    showAlert('File harus berformat CSV', 'danger');
+    event.target.value = '';
+    return;
+  }
+  
+  const reader = new FileReader();
+  
+  reader.onload = function(e) {
+    const csvText = e.target.result;
+    document.getElementById('csvData').value = csvText;
+    showAlert(`File "${file.name}" berhasil dimuat. Klik "Upload CSV" untuk memproses.`, 'info');
+  };
+  
+  reader.onerror = function() {
+    showAlert('Gagal membaca file', 'danger');
+    event.target.value = '';
+  };
+  
+  reader.readAsText(file);
 }
 
 document.addEventListener('DOMContentLoaded', () => {

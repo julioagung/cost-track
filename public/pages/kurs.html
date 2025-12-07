@@ -70,11 +70,29 @@
         <h5><i class="bi bi-upload"></i> Upload Data Kurs CSV</h5>
       </div>
       <div class="card-body">
-        <p>Format CSV: <code>tanggal,usdToIdr</code></p>
-        <p>Contoh: <code>2024-01-15,15500</code></p>
+        <p class="mb-3">
+          <strong>Format:</strong> <code>tanggal,usdToIdr</code> (contoh: <code>2024-12-01,15500</code>)
+          <a href="/sample-kurs.csv" download class="btn btn-sm btn-outline-primary ms-2">
+            <i class="bi bi-download"></i> Download Contoh
+          </a>
+        </p>
+        
+        <!-- Upload dari File -->
+        <div class="mb-4">
+          <label for="csvFile" class="form-label"><i class="bi bi-file-earmark-arrow-up"></i> Upload File CSV</label>
+          <input type="file" class="form-control" id="csvFile" accept=".csv" onchange="handleFileUpload(event)">
+          <small class="text-muted">Pilih file CSV dari komputer Anda</small>
+        </div>
+        
+        <div class="text-center mb-3">
+          <span class="badge bg-secondary">ATAU</span>
+        </div>
+        
+        <!-- Paste Manual -->
         <div class="mb-3">
+          <label for="csvData" class="form-label"><i class="bi bi-clipboard"></i> Paste Data CSV</label>
           <textarea class="form-control" id="csvData" rows="5" 
-            placeholder="Paste data CSV di sini...&#10;2024-01-15,15500&#10;2024-01-16,15550"></textarea>
+            placeholder="Paste data CSV di sini...&#10;tanggal,usdToIdr&#10;2024-12-01,15500&#10;2024-12-02,15520"></textarea>
         </div>
         <button class="btn btn-success" onclick="uploadCSV()">
           <i class="bi bi-upload"></i> Upload CSV
