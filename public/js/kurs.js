@@ -207,7 +207,37 @@ function showUploadModal() {
   uploadModal.show();
 }
 
+function initDummyKurs() {
+  const existingKurs = localStorage.getItem('kurs');
+  if (!existingKurs || JSON.parse(existingKurs).length === 0) {
+    const today = new Date();
+    const kursData = [];
+    
+    // Generate kurs data for last 30 days
+    for (let i = 0; i < 30; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      // Random kurs between 15400-15600
+      const baseRate = 15500;
+      const variation = Math.floor(Math.random() * 200) - 100;
+      const rate = baseRate + variation;
+      
+      kursData.push({
+        _id: `kurs-${Date.now()}-${i}`,
+        tanggal: dateStr,
+        usdToIdr: rate,
+        sumber: i < 20 ? 'JISDOR' : 'MANUAL'
+      });
+    }
+    
+    localStorage.setItem('kurs', JSON.stringify(kursData));
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  initDummyKurs();
   kursModal = new bootstrap.Modal(document.getElementById('kursModal'));
   uploadModal = new bootstrap.Modal(document.getElementById('uploadModal'));
   loadKurs();
