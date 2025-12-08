@@ -29,74 +29,117 @@
   </nav>
 
   <div class="container mt-4">
-    <h1 class="mb-4"><i class="bi bi-currency-exchange"></i> Kurs JISDOR</h1>
-    
-    <div class="row mb-4">
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-header bg-info text-white">
-            <h5><i class="bi bi-calendar-today"></i> Kurs Hari Ini</h5>
-          </div>
-          <div class="card-body">
-            <div id="kursToday" class="text-center">
-              <div class="spinner-border" role="status">
-                <span class="visually-hidden">Loading...</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-header bg-primary text-white">
-            <h5><i class="bi bi-search"></i> Cari Kurs Berdasarkan Tanggal</h5>
-          </div>
-          <div class="card-body">
-            <div class="input-group mb-3">
-              <input type="date" class="form-control" id="searchDate">
-              <button class="btn btn-primary" onclick="searchKurs()">
-                <i class="bi bi-search"></i> Cari
-              </button>
-            </div>
-            <div id="searchResult"></div>
-          </div>
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1><i class="bi bi-currency-exchange"></i> Kurs JISDOR</h1>
+      <div>
+        <button class="btn btn-success me-2" onclick="showUploadModal()">
+          <i class="bi bi-upload"></i> Upload CSV
+        </button>
+        <button class="btn btn-primary" onclick="showAddModal()">
+          <i class="bi bi-plus-circle"></i> Tambah Kurs
+        </button>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-header bg-success text-white">
-        <h5><i class="bi bi-upload"></i> Upload Data Kurs CSV</h5>
-      </div>
       <div class="card-body">
-        <p class="mb-3">
-          <strong>Format:</strong> <code>tanggal,usdToIdr</code> (contoh: <code>2024-12-01,15500</code>)
-          <a href="/sample-kurs.csv" download class="btn btn-sm btn-outline-primary ms-2">
-            <i class="bi bi-download"></i> Download Contoh
-          </a>
-        </p>
-        
-        <!-- Upload dari File -->
-        <div class="mb-4">
-          <label for="csvFile" class="form-label"><i class="bi bi-file-earmark-arrow-up"></i> Upload File CSV</label>
-          <input type="file" class="form-control" id="csvFile" accept=".csv" onchange="handleFileUpload(event)">
-          <small class="text-muted">Pilih file CSV dari komputer Anda</small>
+        <div class="table-responsive">
+          <table class="table table-hover" style="table-layout: fixed; width: 100%;">
+            <colgroup>
+              <col style="width: 60px;">
+              <col style="width: 25%;">
+              <col style="width: 25%;">
+              <col style="width: 20%;">
+              <col style="width: 180px;">
+            </colgroup>
+            <thead>
+              <tr>
+                <th class="text-center">NO</th>
+                <th>TANGGAL</th>
+                <th class="text-end">KURS (USD TO IDR)</th>
+                <th class="text-center">SUMBER</th>
+                <th class="text-center">AKSI</th>
+              </tr>
+            </thead>
+            <tbody id="kursTableBody">
+              <!-- Data will be loaded here -->
+            </tbody>
+          </table>
         </div>
-        
-        <div class="text-center mb-3">
-          <span class="badge bg-secondary">ATAU</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Tambah/Edit -->
+  <div class="modal fade" id="kursModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalTitle">Tambah Kurs Manual</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        
-        <!-- Paste Manual -->
-        <div class="mb-3">
-          <label for="csvData" class="form-label"><i class="bi bi-clipboard"></i> Paste Data CSV</label>
-          <textarea class="form-control" id="csvData" rows="5" 
-            placeholder="Paste data CSV di sini...&#10;tanggal,usdToIdr&#10;2024-12-01,15500&#10;2024-12-02,15520"></textarea>
+        <div class="modal-body">
+          <form id="kursForm">
+            <input type="hidden" id="kursId">
+            <div class="mb-3">
+              <label for="tanggal" class="form-label">Tanggal *</label>
+              <input type="date" class="form-control" id="tanggal" required>
+            </div>
+            <div class="mb-3">
+              <label for="usdToIdr" class="form-label">Kurs USD to IDR *</label>
+              <input type="number" class="form-control" id="usdToIdr" min="0" step="0.01" placeholder="15500" required>
+              <small class="text-muted">Contoh: 15500</small>
+            </div>
+          </form>
         </div>
-        <button class="btn btn-success" onclick="uploadCSV()">
-          <i class="bi bi-upload"></i> Upload CSV
-        </button>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-primary" onclick="saveKurs()">Simpan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Upload CSV -->
+  <div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Upload Data Kurs CSV</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-3">
+            <strong>Format:</strong> <code>tanggal,usdToIdr</code> (contoh: <code>2024-12-01,15500</code>)
+            <a href="/sample-kurs.csv" download class="btn btn-sm btn-outline-primary ms-2">
+              <i class="bi bi-download"></i> Download Contoh
+            </a>
+          </p>
+          
+          <!-- Upload dari File -->
+          <div class="mb-4">
+            <label for="csvFile" class="form-label"><i class="bi bi-file-earmark-arrow-up"></i> Upload File CSV</label>
+            <input type="file" class="form-control" id="csvFile" accept=".csv" onchange="handleFileUpload(event)">
+            <small class="text-muted">Pilih file CSV dari komputer Anda</small>
+          </div>
+          
+          <div class="text-center mb-3">
+            <span class="badge bg-secondary">ATAU</span>
+          </div>
+          
+          <!-- Paste Manual -->
+          <div class="mb-3">
+            <label for="csvData" class="form-label"><i class="bi bi-clipboard"></i> Paste Data CSV</label>
+            <textarea class="form-control" id="csvData" rows="5" 
+              placeholder="Paste data CSV di sini...&#10;tanggal,usdToIdr&#10;2024-12-01,15500&#10;2024-12-02,15520"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-success" onclick="uploadCSV()">
+            <i class="bi bi-upload"></i> Upload CSV
+          </button>
+        </div>
       </div>
     </div>
   </div>

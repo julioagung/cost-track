@@ -1,52 +1,122 @@
-async function loadKursToday() {
+let kursModal;
+let uploadModal;
+
+async function loadKurs() {
+  const tbody = document.getElementById('kursTableBody');
   try {
-    const kurs = await fetchAPI('/api/kurs/today');
-    if (kurs && kurs.usdToIdr) {
-      document.getElementById('kursToday').innerHTML = `
-        <h2 class="display-4">${formatCurrency(kurs.usdToIdr)}</h2>
-        <p class="text-muted">${formatDate(kurs.tanggal)}</p>
-        <span class="badge bg-${kurs.sumber === 'JISDOR' ? 'success' : 'warning'}">
-          ${kurs.sumber}
-        </span>
-      `;
-    } else {
-      throw new Error('Data kurs tidak valid');
+    const data = await fetchAPI('/api/kurs');
+    
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center">Belum ada data kurs</td></tr>';
+      return;
     }
+    
+    // Sort by date descending (newest first)
+    data.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+    
+    tbody.innerHTML = data.map((item, index) => {
+      const tanggal = new Date(item.tanggal);
+      const tanggalStr = tanggal.toLocaleDateString('id-ID', { 
+        day: '2-digit', 
+        month: 'long', 
+        year: 'numeric' 
+      });
+      
+      const badgeClass = item.sumber === 'JISDOR' ? 'success' : item.sumber === 'MANUAL' ? 'primary' : 'warning';
+      
+      return `
+        <tr>
+          <td class="text-center">${index + 1}</td>
+          <td><span class="fw-bold">${tanggalStr}</span></td>
+          <td class="text-end"><span class="fw-bold">${formatCurrency(item.usdToIdr)}</span></td>
+          <td class="text-center"><span class="badge bg-${badgeClass}">${item.sumber}</span></td>
+          <td class="table-actions">
+            <button class="btn btn-sm btn-warning" onclick="editKurs('${item._id}')" title="Edit"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-danger" onclick="deleteKurs('${item._id}')" title="Hapus"><i class="bi bi-trash"></i></button>
+          </td>
+        </tr>
+      `;
+    }).join('');
   } catch (error) {
-    document.getElementById('kursToday').innerHTML = `
-      <div class="text-danger">Gagal memuat kurs hari ini</div>
-    `;
+    console.error('Error loading kurs:', error);
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Gagal memuat data kurs</td></tr>';
+    showAlert('Gagal memuat data kurs: ' + error.message, 'danger');
   }
 }
 
-async function searchKurs() {
-  const date = document.getElementById('searchDate').value;
-  if (!date) {
-    showAlert('Pilih tanggal terlebih dahulu', 'warning');
+function showAddModal() {
+  document.getElementById('modalTitle').textContent = 'Tambah Kurs Manual';
+  document.getElementById('kursForm').reset();
+  document.getElementById('kursId').value = '';
+  document.getElementById('tanggal').valueAsDate = new Date();
+  kursModal.show();
+}
+
+async function editKurs(id) {
+  try {
+    const data = await fetchAPI(`/api/kurs/${id}`);
+    document.getElementById('modalTitle').textContent = 'Edit Kurs';
+    document.getElementById('kursId').value = data._id;
+    document.getElementById('tanggal').value = data.tanggal.split('T')[0];
+    document.getElementById('usdToIdr').value = data.usdToIdr;
+    kursModal.show();
+  } catch (error) {
+    showAlert('Gagal memuat data kurs', 'danger');
+  }
+}
+
+async function saveKurs() {
+  const id = document.getElementById('kursId').value;
+  const tanggal = document.getElementById('tanggal').value;
+  const usdToIdr = parseFloat(document.getElementById('usdToIdr').value);
+  
+  if (!tanggal) {
+    showAlert('Tanggal harus diisi', 'warning');
     return;
   }
   
+  if (!usdToIdr || usdToIdr <= 0) {
+    showAlert('Kurs harus lebih dari 0', 'warning');
+    return;
+  }
+  
+  const data = {
+    tanggal: tanggal,
+    usdToIdr: usdToIdr,
+    sumber: 'MANUAL'
+  };
+  
   try {
-    const kurs = await fetchAPI(`/api/kurs/${date}`);
-    if (kurs && kurs.usdToIdr) {
-      document.getElementById('searchResult').innerHTML = `
-        <div class="card bg-light">
-          <div class="card-body">
-            <h5 class="mb-2">${formatCurrency(kurs.usdToIdr)}</h5>
-            <p class="text-muted mb-2">${formatDate(kurs.tanggal)}</p>
-            <span class="badge bg-${kurs.sumber === 'JISDOR' ? 'success' : 'warning'}">
-              ${kurs.sumber}
-            </span>
-          </div>
-        </div>
-      `;
+    if (id) {
+      await fetchAPI(`/api/kurs/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+      });
+      showAlert('Kurs berhasil diupdate', 'success');
     } else {
-      throw new Error('Data kurs tidak ditemukan');
+      await fetchAPI('/api/kurs', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      showAlert('Kurs berhasil ditambahkan', 'success');
     }
+    
+    kursModal.hide();
+    loadKurs();
   } catch (error) {
-    document.getElementById('searchResult').innerHTML = `
-      <div class="text-danger">Gagal memuat kurs untuk tanggal tersebut</div>
-    `;
+    showAlert(error.message, 'danger');
+  }
+}
+
+async function deleteKurs(id) {
+  if (!confirm('Yakin ingin menghapus data kurs ini?')) return;
+  
+  try {
+    await fetchAPI(`/api/kurs/${id}`, { method: 'DELETE' });
+    showAlert('Kurs berhasil dihapus', 'success');
+    loadKurs();
+  } catch (error) {
+    showAlert(error.message, 'danger');
   }
 }
 
@@ -96,7 +166,9 @@ async function uploadCSV() {
     
     showAlert(result.message || 'Data berhasil diupload', 'success');
     document.getElementById('csvData').value = '';
-    loadKursToday();
+    document.getElementById('csvFile').value = '';
+    uploadModal.hide();
+    loadKurs();
   } catch (error) {
     showAlert(error.message || 'Gagal mengupload data', 'danger');
   }
@@ -118,7 +190,7 @@ function handleFileUpload(event) {
   reader.onload = function(e) {
     const csvText = e.target.result;
     document.getElementById('csvData').value = csvText;
-    showAlert(`File "${file.name}" berhasil dimuat. Klik "Upload CSV" untuk memproses.`, 'info');
+    showAlert(`File "${file.name}" berhasil dimuat`, 'info');
   };
   
   reader.onerror = function() {
@@ -129,7 +201,14 @@ function handleFileUpload(event) {
   reader.readAsText(file);
 }
 
+function showUploadModal() {
+  document.getElementById('csvData').value = '';
+  document.getElementById('csvFile').value = '';
+  uploadModal.show();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-  loadKursToday();
-  document.getElementById('searchDate').valueAsDate = new Date();
+  kursModal = new bootstrap.Modal(document.getElementById('kursModal'));
+  uploadModal = new bootstrap.Modal(document.getElementById('uploadModal'));
+  loadKurs();
 });

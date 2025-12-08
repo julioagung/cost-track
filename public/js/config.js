@@ -77,11 +77,29 @@ function initDummyData() {
   }
   
   if (!localStorage.getItem('kurs')) {
-    localStorage.setItem('kurs', JSON.stringify([
-      { tanggal: '2024-12-01', usdToIdr: 15500, sumber: 'JISDOR' },
-      { tanggal: '2024-11-30', usdToIdr: 15480, sumber: 'JISDOR' },
-      { tanggal: '2024-11-29', usdToIdr: 15520, sumber: 'JISDOR' }
-    ]));
+    const today = new Date();
+    const kursData = [];
+    
+    // Generate kurs data for last 30 days
+    for (let i = 0; i < 30; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      // Random kurs between 15400-15600
+      const baseRate = 15500;
+      const variation = Math.floor(Math.random() * 200) - 100;
+      const rate = baseRate + variation;
+      
+      kursData.push({
+        _id: `kurs-${i}`,
+        tanggal: dateStr,
+        usdToIdr: rate,
+        sumber: i < 20 ? 'JISDOR' : 'MANUAL'
+      });
+    }
+    
+    localStorage.setItem('kurs', JSON.stringify(kursData));
   }
 }
 
@@ -119,15 +137,25 @@ async function fetchAPI(url, options = {}) {
             resolve(kurs);
             return;
           } else if (url.includes('/kurs/') && !url.includes('/upload-csv')) {
-            // Get kurs by date
+            // Get kurs by date or ID
             const dateMatch = url.match(/\/kurs\/(.+)$/);
             if (dateMatch) {
-              const searchDate = dateMatch[1];
+              const searchParam = dateMatch[1];
               const kursData = JSON.parse(localStorage.getItem('kurs') || '[]');
-              const kurs = kursData.find(k => k.tanggal === searchDate) || { tanggal: searchDate, usdToIdr: 15500, sumber: 'JISDOR' };
+              
+              // Try to find by _id first, then by date
+              let kurs = kursData.find(k => k._id === searchParam);
+              if (!kurs) {
+                kurs = kursData.find(k => k.tanggal === searchParam) || { tanggal: searchParam, usdToIdr: 15500, sumber: 'JISDOR' };
+              }
               resolve(kurs);
               return;
             }
+          } else if (url.includes('/kurs') && resource === 'kurs') {
+            // Get all kurs
+            let kursData = JSON.parse(localStorage.getItem('kurs') || '[]');
+            resolve(kursData);
+            return;
           } else if (url.includes('/hpe/')) {
             // HPE Calculation
             const produkId = url.split('/hpe/')[1].split('?')[0];
