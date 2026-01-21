@@ -1,9 +1,11 @@
 // ========================================
-// REAL API MODE - Connected to Backend
+// PRODUCTION API MODE - Connected to Vercel Backend
 // ========================================
 
-// API Base URL
-const API_BASE_URL = window.location.origin;
+// API Base URL - Auto detect environment
+const API_BASE_URL = window.location.hostname === 'localhost' 
+  ? 'http://localhost:5000'  // Development
+  : window.location.origin;   // Production (same domain)
 
 // Real API Helper
 async function fetchAPI(url, options = {}) {
