@@ -31,13 +31,35 @@
   <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h1><i class="bi bi-currency-exchange"></i> Kurs JISDOR</h1>
-      <div>
-        <button class="btn btn-success me-2" onclick="showUploadModal()">
+      <div class="btn-group" role="group">
+        <button class="btn btn-info" onclick="refreshJisdorToday()" title="Refresh JISDOR Hari Ini">
+          <i class="bi bi-arrow-clockwise"></i> Refresh JISDOR
+        </button>
+        <button class="btn btn-outline-info" onclick="getLatestJisdor()" title="Ambil JISDOR Terbaru">
+          <i class="bi bi-bank"></i> Latest
+        </button>
+        <button class="btn btn-success" onclick="showUploadModal()">
           <i class="bi bi-upload"></i> Upload CSV
         </button>
         <button class="btn btn-primary" onclick="showAddModal()">
-          <i class="bi bi-plus-circle"></i> Tambah Kurs
+          <i class="bi bi-plus-circle"></i> Tambah Manual
         </button>
+      </div>
+    </div>
+
+    <!-- Info Panel -->
+    <div class="row mb-4">
+      <div class="col-md-12">
+        <div class="alert alert-info">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <div>
+              <strong>JISDOR (Jakarta Interbank Spot Dollar Rate)</strong><br>
+              <small>Kurs referensi USD/IDR yang diterbitkan Bank Indonesia setiap hari kerja pukul 10:00 WIB. 
+              Data diambil otomatis dari API Bank Indonesia.</small>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -46,11 +68,12 @@
         <div class="table-responsive">
           <table class="table table-hover" style="table-layout: fixed; width: 100%;">
             <colgroup>
-              <col style="width: 60px;">
-              <col style="width: 25%;">
-              <col style="width: 25%;">
+              <col style="width: 50px;">
               <col style="width: 20%;">
-              <col style="width: 180px;">
+              <col style="width: 20%;">
+              <col style="width: 15%;">
+              <col style="width: 15%;">
+              <col style="width: 20%;">
             </colgroup>
             <thead>
               <tr>
@@ -58,6 +81,7 @@
                 <th>TANGGAL</th>
                 <th class="text-end">KURS (USD TO IDR)</th>
                 <th class="text-center">SUMBER</th>
+                <th class="text-center">UPDATE</th>
                 <th class="text-center">AKSI</th>
               </tr>
             </thead>
@@ -111,9 +135,9 @@
         <div class="modal-body">
           <p class="mb-3">
             <strong>Format:</strong> <code>tanggal,usdToIdr</code> (contoh: <code>2024-12-01,15500</code>)
-            <a href="/sample-kurs.csv" download class="btn btn-sm btn-outline-primary ms-2">
+            <button class="btn btn-sm btn-outline-primary ms-2" onclick="downloadSampleCSV()">
               <i class="bi bi-download"></i> Download Contoh
-            </a>
+            </button>
           </p>
           
           <!-- Upload dari File -->

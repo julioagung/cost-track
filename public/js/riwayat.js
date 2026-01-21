@@ -1,11 +1,14 @@
 let riwayatModal;
 let komponenList = [];
+const riwayatErrorBoundary = new ErrorBoundary('riwayatTableBody');
 
 async function loadRiwayat() {
   const tbody = document.getElementById('riwayatTableBody');
   try {
     console.log('Loading riwayat...');
-    const data = await fetchAPI('/api/riwayat');
+    showLoading(true);
+    
+    const data = await retryAPI(() => fetchAPI('/api/riwayat'), 3, 1000);
     console.log('Riwayat data:', data);
     
     if (!data || data.length === 0) {
@@ -14,8 +17,15 @@ async function loadRiwayat() {
     }
     
     tbody.innerHTML = data.map((item, index) => {
+      // Ensure all required fields exist and sanitize
+      const hargaSatuan = item.hargaSatuan || item.harga || 0;
+      const hargaIDR = item.hargaIDR || 0;
+      const hargaUSD = item.hargaUSD || 0;
+      const quantity = item.quantity || 0;
+      const matauang = item.matauang || 'IDR';
+      
       // Format harga satuan dengan simbol mata uang
-      const hargaSatuan = item.hargaSatuan || item.harga || 0; const displayPrice = item.matauang === 'USD' 
+      const displayPrice = matauang === 'USD' 
         ? `$${hargaSatuan.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
         : formatCurrency(hargaSatuan);
       
@@ -27,47 +37,47 @@ async function loadRiwayat() {
         year: 'numeric' 
       });
       
-      // Kurs info hanya untuk USD
-      const kursInfo = item.matauang === 'USD' 
-        ? `<div class="small text-muted mt-1">Kurs: ${formatCurrency(item.kursJisdor)}</div>`
-        : '';
-      
       // Format USD dengan simbol
-      const usdDisplay = `$${item.hargaUSD.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      const usdDisplay = `$${hargaUSD.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
       
       return `
         <tr>
           <td class="text-center">${index + 1}</td>
           <td>${tanggalStr}</td>
-          <td><span class="fw-bold">${item.namaKomponen}</span></td>
-          <td>${item.supplier || "-"}</td>
-          <td class="text-end">${item.quantity.toLocaleString('id-ID')}</td>
-          <td class="text-end">${displayPrice} <span class="badge badge-${item.matauang === 'USD' ? 'success' : 'primary'}">${item.matauang}</span></td>
-          <td class="text-end"><span class="fw-bold">${formatCurrency(item.hargaIDR)}</span></td>
+          <td><span class="fw-bold">${sanitizeHTML(item.namaKomponen || 'N/A')}</span></td>
+          <td>${sanitizeHTML(item.supplier || "-")}</td>
+          <td class="text-end">${quantity.toLocaleString('id-ID')}</td>
+          <td class="text-end">${displayPrice} <span class="badge bg-${matauang === 'USD' ? 'success' : 'primary'}">${matauang}</span></td>
+          <td class="text-end"><span class="fw-bold">${formatCurrency(hargaIDR)}</span></td>
           <td class="text-end">${usdDisplay}</td>
-          <td class="text-center">${item.noPO || '-'}</td>
+          <td class="text-center">${sanitizeHTML(item.noPO || '-')}</td>
           <td class="table-actions">
-            <button class="btn btn-sm btn-warning" onclick="editRiwayat('${item._id}')" title="Edit"><i class="bi bi-pencil"></i></button>
-            <button class="btn btn-sm btn-danger" onclick="deleteRiwayat('${item._id}')" title="Hapus"><i class="bi bi-trash"></i></button>
+            <button class="btn btn-sm btn-warning" onclick="editRiwayat('${sanitizeHTML(item._id)}')" title="Edit"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-danger" onclick="deleteRiwayat('${sanitizeHTML(item._id)}')" title="Hapus"><i class="bi bi-trash"></i></button>
           </td>
         </tr>
       `;
     }).join('');
   } catch (error) {
     console.error('Error loading riwayat:', error);
-    tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger">Gagal memuat data riwayat</td></tr>';
-    showAlert('Gagal memuat data riwayat: ' + error.message, 'danger');
+    riwayatErrorBoundary.showError(error, 'Riwayat Data Loading');
+    handleAPIError(error, 'loadRiwayat');
+  } finally {
+    showLoading(false);
   }
 }
 
 async function loadKomponenList() {
   try {
-    komponenList = await fetchAPI('/api/komponen');
+    komponenList = await retryAPI(() => fetchAPI('/api/komponen'), 3, 1000);
     const select = document.getElementById('komponenId');
-    select.innerHTML = '<option value="">Pilih Komponen</option>' +
-      komponenList.map(k => `<option value="${k._id}" data-nama="${k.namaKomponen}">${k.namaKomponen}</option>`).join('');
+    if (select) {
+      select.innerHTML = '<option value="">Pilih Komponen</option>' +
+        komponenList.map(k => `<option value="${sanitizeHTML(k._id)}" data-nama="${sanitizeHTML(k.namaKomponen)}">${sanitizeHTML(k.namaKomponen)}</option>`).join('');
+    }
   } catch (error) {
     console.error('Error loading komponen:', error);
+    handleAPIError(error, 'loadKomponenList');
   }
 }
 
@@ -109,7 +119,7 @@ async function fetchKursToday() {
     }
     
     const dateToFetch = document.getElementById('tanggalPengadaan').value;
-    const kurs = await fetchAPI(`${'/api/kurs'}/${dateToFetch}`);
+    const kurs = await fetchAPI(`/api/kurs/${dateToFetch}`);
     document.getElementById('kursJisdor').value = kurs.usdToIdr;
     showAlert(`Kurs ${formatDate(kurs.tanggal)}: ${formatCurrency(kurs.usdToIdr)} (${kurs.sumber})`, 'success');
   } catch (error) {
@@ -121,7 +131,8 @@ async function fetchKursToday() {
 
 async function editRiwayat(id) {
   try {
-    const data = await fetchAPI(`${'/api/riwayat'}/${id}`);
+    showLoading(true);
+    const data = await fetchAPI(`/api/riwayat/${id}`);
     document.getElementById('modalTitle').textContent = 'Edit Riwayat Pengadaan';
     document.getElementById('riwayatId').value = data._id;
     document.getElementById('komponenId').value = data.komponenId;
@@ -136,7 +147,9 @@ async function editRiwayat(id) {
     toggleKurs();
     riwayatModal.show();
   } catch (error) {
-    showAlert('Gagal memuat data riwayat', 'danger');
+    handleAPIError(error, 'editRiwayat');
+  } finally {
+    showLoading(false);
   }
 }
 
@@ -145,45 +158,56 @@ async function saveRiwayat() {
   const komponenId = document.getElementById('komponenId').value;
   const matauang = document.getElementById('matauang').value;
   const kursValue = parseFloat(document.getElementById('kursJisdor').value);
+  const supplier = document.getElementById('supplier').value.trim();
+  const tanggalPengadaan = document.getElementById('tanggalPengadaan').value;
+  const quantity = parseFloat(document.getElementById('quantity').value);
+  const hargaSatuan = parseFloat(document.getElementById('hargaSatuan').value);
   
-  if (!komponenId) {
-    showAlert('Pilih komponen terlebih dahulu', 'warning');
-    return;
+  // Validation rules
+  const validationRules = {
+    komponenId: { required: true, label: 'Komponen' },
+    supplier: { required: true, type: 'string', maxLength: 100, label: 'Supplier' },
+    tanggalPengadaan: { required: true, label: 'Tanggal Pengadaan' },
+    quantity: { required: true, type: 'number', min: 0.01, label: 'Quantity' },
+    hargaSatuan: { required: true, type: 'number', min: 0.01, label: 'Harga Satuan' }
+  };
+  
+  if (matauang === 'USD') {
+    validationRules.kursJisdor = { required: true, type: 'number', min: 1000, max: 50000, label: 'Kurs JISDOR' };
   }
-  
-  if (matauang === 'USD' && (!kursValue || kursValue <= 0)) {
-    showAlert('Kurs JISDOR harus diisi untuk mata uang USD', 'warning');
-    return;
-  }
-  
-  const option = document.querySelector(`#komponenId option[value="${komponenId}"]`);
   
   const data = {
-    komponenId: komponenId,
-    namaKomponen: option.getAttribute('data-nama'),
-    supplier: document.getElementById('supplier').value.trim(),
-    tanggalPengadaan: document.getElementById('tanggalPengadaan').value,
-    quantity: parseFloat(document.getElementById('quantity').value),
-    hargaSatuan: parseFloat(document.getElementById('hargaSatuan').value),
-    matauang: matauang,
+    komponenId,
+    supplier,
+    tanggalPengadaan,
+    quantity,
+    hargaSatuan,
+    matauang,
     kursJisdor: matauang === 'USD' ? kursValue : 1,
     noPO: document.getElementById('noPO').value.trim(),
     catatan: document.getElementById('catatan').value.trim()
   };
   
-  if (data.quantity <= 0) {
-    showAlert('Quantity harus lebih dari 0', 'warning');
+  // Validate input
+  const errors = validateInput(data, validationRules);
+  if (errors.length > 0) {
+    showAlert(errors.join('<br>'), 'warning');
     return;
   }
   
-  if (data.hargaSatuan <= 0) {
-    showAlert('Harga satuan harus lebih dari 0', 'warning');
-    return;
+  // Add namaKomponen from selected option
+  const option = document.querySelector(`#komponenId option[value="${komponenId}"]`);
+  if (option) {
+    data.namaKomponen = option.getAttribute('data-nama');
   }
+  
+  console.log('Saving riwayat data:', data);
   
   try {
+    showLoading(true);
+    
     if (id) {
-      await fetchAPI(`${'/api/riwayat'}/${id}`, {
+      await fetchAPI(`/api/riwayat/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data)
       });
@@ -199,7 +223,10 @@ async function saveRiwayat() {
     riwayatModal.hide();
     loadRiwayat();
   } catch (error) {
-    showAlert(error.message, 'danger');
+    console.error('Error saving riwayat:', error);
+    handleAPIError(error, 'saveRiwayat');
+  } finally {
+    showLoading(false);
   }
 }
 
@@ -207,19 +234,24 @@ async function deleteRiwayat(id) {
   if (!confirm('Yakin ingin menghapus riwayat ini?')) return;
   
   try {
-    await fetchAPI(`${'/api/riwayat'}/${id}`, { method: 'DELETE' });
+    showLoading(true);
+    await fetchAPI(`/api/riwayat/${id}`, { method: 'DELETE' });
     showAlert('Riwayat berhasil dihapus', 'success');
     loadRiwayat();
   } catch (error) {
-    showAlert(error.message, 'danger');
+    handleAPIError(error, 'deleteRiwayat');
+  } finally {
+    showLoading(false);
   }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  riwayatModal = new bootstrap.Modal(document.getElementById('riwayatModal'));
-  await loadKomponenList();
-  loadRiwayat();
+  try {
+    riwayatModal = new bootstrap.Modal(document.getElementById('riwayatModal'));
+    await loadKomponenList();
+    loadRiwayat();
+  } catch (error) {
+    console.error('Error initializing riwayat page:', error);
+    handleAPIError(error, 'riwayat initialization');
+  }
 });
-
-
-

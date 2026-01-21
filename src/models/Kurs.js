@@ -13,7 +13,7 @@ const kursSchema = new mongoose.Schema({
   },
   sumber: {
     type: String,
-    enum: ['JISDOR', 'MANUAL', 'FALLBACK'],
+    enum: ['JISDOR', 'JISDOR_API', 'JISDOR_XML', 'MANUAL', 'FALLBACK'],
     default: 'MANUAL'
   }
 }, {
