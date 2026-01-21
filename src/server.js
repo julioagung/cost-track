@@ -7,6 +7,12 @@ connectDB();
 
 // Start Server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`✓ Server running on http://localhost:${PORT}`);
-});
+
+// For Vercel, export the app
+if (process.env.NODE_ENV === 'production') {
+  module.exports = app;
+} else {
+  app.listen(PORT, () => {
+    console.log(`✓ Server running on http://localhost:${PORT}`);
+  });
+}
