@@ -217,6 +217,12 @@ async function saveKurs() {
     return;
   }
   
+  // Additional validation for exchange rate
+  if (usdToIdr < 10000 || usdToIdr > 25000) {
+    showAlert('Kurs USD to IDR harus antara 10.000 - 25.000', 'warning');
+    return;
+  }
+  
   data.sumber = 'MANUAL';
   
   try {
@@ -239,7 +245,14 @@ async function saveKurs() {
     kursModal.hide();
     loadKurs();
   } catch (error) {
-    handleAPIError(error, 'saveKurs');
+    console.error('Error saving kurs:', error);
+    
+    // Show more specific error message
+    if (error.message && error.message.includes('sudah ada')) {
+      showAlert('Data kurs untuk tanggal ini sudah ada. Silakan pilih tanggal lain atau gunakan fitur Edit.', 'warning');
+    } else {
+      handleAPIError(error, 'saveKurs');
+    }
   } finally {
     showLoading(false);
   }

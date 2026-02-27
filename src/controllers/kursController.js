@@ -91,6 +91,19 @@ exports.getByDate = async (req, res) => {
   }
 };
 
+exports.getById = async (req, res) => {
+  try {
+    const kurs = await Kurs.findById(req.params.id);
+    if (!kurs) {
+      return res.status(404).json({ message: 'Data kurs tidak ditemukan' });
+    }
+    res.json(kurs);
+  } catch (error) {
+    console.error('❌ Error in getById:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 exports.getLatest = async (req, res) => {
   try {
     console.log('🔄 Fetching latest available JISDOR rate...');
@@ -121,12 +134,56 @@ exports.getLatest = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
+    // Check if kurs for this date already exists
+    const existingKurs = await Kurs.findOne({ tanggal: req.body.tanggal });
+    if (existingKurs) {
+      return res.status(400).json({ 
+        message: 'Data kurs untuk tanggal ini sudah ada. Gunakan fitur Edit untuk mengubah data.' 
+      });
+    }
+    
     const kurs = new Kurs(req.body);
     await kurs.save();
     console.log(`✅ Manual kurs created: ${kurs.usdToIdr} for ${kurs.tanggal}`);
     res.status(201).json(kurs);
   } catch (error) {
     console.error('❌ Error creating kurs:', error);
+    
+    // Handle duplicate key error
+    if (error.code === 11000) {
+      return res.status(400).json({ 
+        message: 'Data kurs untuk tanggal ini sudah ada. Gunakan fitur Edit untuk mengubah data.' 
+      });
+    }
+    
+    res.status(400).json({ message: error.message });
+  }
+};
+
+exports.update = async (req, res) => {
+  try {
+    const kurs = await Kurs.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+    
+    if (!kurs) {
+      return res.status(404).json({ message: 'Data kurs tidak ditemukan' });
+    }
+    
+    console.log(`✅ Kurs updated: ${kurs.usdToIdr} for ${kurs.tanggal}`);
+    res.json(kurs);
+  } catch (error) {
+    console.error('❌ Error updating kurs:', error);
+    
+    // Handle duplicate key error
+    if (error.code === 11000) {
+      return res.status(400).json({ 
+        message: 'Data kurs untuk tanggal ini sudah ada' 
+      });
+    }
+    
     res.status(400).json({ message: error.message });
   }
 };

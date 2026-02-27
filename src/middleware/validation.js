@@ -150,11 +150,11 @@ const validateRiwayat = [
 const validateKurs = [
   body('tanggal')
     .isISO8601()
-    .withMessage('Format tanggal tidak valid'),
+    .withMessage('Format tanggal tidak valid (gunakan format YYYY-MM-DD)'),
   
   body('usdToIdr')
-    .isFloat({ min: 1000, max: 50000 })
-    .withMessage('Kurs USD to IDR harus antara 1000-50000'),
+    .isFloat({ min: 10000, max: 25000 })
+    .withMessage('Kurs USD to IDR harus antara 10.000-25.000'),
   
   body('sumber')
     .optional()

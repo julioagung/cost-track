@@ -10,7 +10,8 @@ router.post('/upload-csv', controller.uploadCSV);
 router.post('/refresh', controller.refreshJisdor);
 router.get('/', controller.getAll);  // GET /api/kurs
 router.post('/', validateKurs, controller.create);
+router.get('/:id', validateMongoId, controller.getById);
+router.put('/:id', validateMongoId, validateKurs, controller.update);
 router.delete('/:id', validateMongoId, controller.delete);  // DELETE /api/kurs/:id
-router.get('/:tanggal', controller.getByDate);
 
 module.exports = router;

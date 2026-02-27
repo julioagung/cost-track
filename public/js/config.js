@@ -150,7 +150,8 @@ function handleAPIError(error, context = '') {
   } else if (error.message.includes('404')) {
     message = 'Data tidak ditemukan';
   } else if (error.message.includes('400')) {
-    message = 'Data yang dikirim tidak valid';
+    // Use the actual error message from server instead of generic message
+    message = error.message.replace('HTTP 400: Bad Request', '').trim() || 'Data yang dikirim tidak valid';
   } else if (error.message.includes('500')) {
     message = 'Terjadi kesalahan pada server';
   } else if (error.message) {
